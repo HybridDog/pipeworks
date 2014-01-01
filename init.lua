@@ -39,6 +39,8 @@ pipeworks.mesecons_rules={{x=0,y=0,z=1},{x=0,y=0,z=-1},{x=1,y=0,z=0},{x=-1,y=0,z
 
 pipeworks.liquid_texture = "default_water.png"
 
+pipeworks.pipe_nodenames = {}
+
 -- Helper functions
 
 function pipeworks.fix_image_names(table, replacement)
