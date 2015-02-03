@@ -202,8 +202,6 @@ table.insert(pipeworks.device_nodenames,"pipeworks:valve_on_loaded")
 table.insert(pipeworks.device_nodenames,"pipeworks:flow_sensor_empty")
 table.insert(pipeworks.device_nodenames,"pipeworks:flow_sensor_loaded")
 
-print(dump(pipeworks.device_nodenames))
-
 minetest.register_abm({
 	nodenames = pipeworks.device_nodenames,
 	interval = 2,
@@ -227,11 +225,6 @@ minetest.register_abm({
 		local adjacent_node2 = minetest.get_node(pos_adjacent2)
 
 		if not adjacent_node1 or not adjacent_node2 then return end
-		print("---------------")
-		print(dump(pos_adjacent1))
-		print(dump(adjacent_node1.name))
-		print(dump(pos_adjacent2))
-		print(dump(adjacent_node2.name))
 
 		local my_level = (minetest.get_meta(pos):get_float("liquid_level")) or 0
 		local adjacent_node_level1 = (minetest.get_meta(pos_adjacent1):get_float("liquid_level")) or 0
@@ -274,8 +267,6 @@ minetest.register_abm({
 
 				if node.name == "pipeworks:flow_sensor_empty" or
 				   node.name == "pipeworks:flow_sensor_loaded" then
-					print("I'm a flow sensor!")
-
 					local sensor = string.match(node.name, "pipeworks:flow_sensor_")
 					local newnode = nil
 
@@ -296,14 +287,7 @@ minetest.register_abm({
 						end
 					end
 				end
-			else
-				print("I'm a valve and I'm off!")
 			end
-
-			print("my_level="..dump(my_level))
-			print("adjacent_node_level1="..dump(adjacent_node_level1))
-			print("adjacent_node_level2="..dump(adjacent_node_level2))
-
 	end
 })
 
