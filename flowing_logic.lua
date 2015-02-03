@@ -4,6 +4,22 @@
 local finite_liquids = minetest.setting_getbool("liquid_finite")
 local pipe_liquid_shows_loaded = 0.5
 
+if mesecon then
+	pipereceptor_on = {
+		receptor = {
+			state = mesecon.state.on,
+			rules = pipeworks.mesecons_rules
+		}
+	}
+
+	pipereceptor_off = {
+		receptor = {
+			state = mesecon.state.off,
+			rules = pipeworks.mesecons_rules
+		}
+	}
+end
+
 -- Evaluate and balance liquid in all pipes
 
 minetest.register_abm({
@@ -262,13 +278,22 @@ minetest.register_abm({
 
 					local sensor = string.match(node.name, "pipeworks:flow_sensor_")
 					local newnode = nil
+
 					if my_level > 1 then
 						newnode = sensor.."loaded"
 					else
 						newnode = sensor.."empty"
 					end
-					if newnode then
+
+					if newnode ~= node.name then
 						minetest.swap_node(pos, {name = newnode, param2 = node.param2})
+						if mesecon then
+							if newnode == "pipeworks:flow_sensor_empty" then
+								mesecon.receptor_off(pos, rules) 
+							else
+								mesecon.receptor_on(pos, rules) 
+							end
+						end
 					end
 				end
 			else
