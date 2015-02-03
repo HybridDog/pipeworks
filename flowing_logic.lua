@@ -214,6 +214,7 @@ minetest.register_abm({
 
 		if axisdir ~= 0 and axisdir ~= 5 then -- if it isn't horizontal, force it.
 			minetest.swap_node(pos, {name = node.name, param2 = fdir_mod4})
+			return
 		end
 
 		local fdir_to_pos = {
