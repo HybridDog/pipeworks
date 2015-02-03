@@ -114,8 +114,6 @@ minetest.register_abm({
 		if not node_below then return end
 
 		local node_level_below = (minetest.get_meta(pos_below):get_float("liquid_level")) or 0
-		print(node_level_below)
-		print(dump(node_above.name))
 
 		if node_level_below > 1
 		  and (node_above.name == "air" or node_above.name == "default:water_flowing") then
