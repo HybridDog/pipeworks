@@ -107,15 +107,15 @@ for s in ipairs(states) do
 	drop = "pipeworks:valve_off_empty",
 		mesecons = {effector = {
 			action_on = function (pos, node)
-				minetest.add_node(pos,{name="pipeworks:valve_on_empty", param2 = node.param2}) 
+				minetest.swap_node(pos,{name="pipeworks:valve_on_empty", param2 = node.param2}) 
 			end,
 			action_off = function (pos, node)
-				minetest.add_node(pos,{name="pipeworks:valve_off_empty", param2 = node.param2}) 
+				minetest.swap_node(pos,{name="pipeworks:valve_off_empty", param2 = node.param2}) 
 			end
 		}},
 		on_punch = function(pos, node, puncher)
 			local fdir = minetest.get_node(pos).param2
-			minetest.add_node(pos, { name = "pipeworks:valve_"..states[3-s].."_empty", param2 = fdir })
+			minetest.swap_node(pos, { name = "pipeworks:valve_"..states[3-s].."_empty", param2 = fdir })
 		end
 	})
 end
@@ -148,15 +148,15 @@ minetest.register_node("pipeworks:valve_on_loaded", {
 	drop = "pipeworks:valve_off_empty",
 	mesecons = {effector = {
 		action_on = function (pos, node)
-			minetest.add_node(pos,{name="pipeworks:valve_on_empty", param2 = node.param2}) 
+			minetest.swap_node(pos,{name="pipeworks:valve_on_empty", param2 = node.param2}) 
 		end,
 		action_off = function (pos, node)
-			minetest.add_node(pos,{name="pipeworks:valve_off_empty", param2 = node.param2}) 
+			minetest.swap_node(pos,{name="pipeworks:valve_off_empty", param2 = node.param2}) 
 		end
 	}},
 	on_punch = function(pos, node, puncher)
 		local fdir = minetest.get_node(pos).param2
-		minetest.add_node(pos, { name = "pipeworks:valve_off_empty", param2 = fdir })
+		minetest.swap_node(pos, { name = "pipeworks:valve_off_empty", param2 = fdir })
 	end
 })
 
