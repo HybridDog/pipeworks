@@ -270,7 +270,7 @@ minetest.register_abm({
 				local sensor = string.match(node.name, "pipeworks:flow_sensor_")
 				local newnode = nil
 
-				if my_level > 1 then
+				if my_level > 1 and (set1 or set2) then
 					newnode = sensor.."loaded"
 				else
 					newnode = sensor.."empty"
