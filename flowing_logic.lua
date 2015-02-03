@@ -178,13 +178,108 @@ minetest.register_abm({
 	end
 })
 
---[[
-other nodes that need processed separately:
-table.insert(pipeworks.pipe_nodenames,"pipeworks:valve_on_empty")
-table.insert(pipeworks.pipe_nodenames,"pipeworks:valve_off_empty")
-table.insert(pipeworks.pipe_nodenames,"pipeworks:entry_panel_empty")
-table.insert(pipeworks.pipe_nodenames,"pipeworks:flow_sensor_empty")
-table.insert(pipeworks.pipe_nodenames,"pipeworks:valve_on_loaded")
-table.insert(pipeworks.pipe_nodenames,"pipeworks:entry_panel_loaded")
-table.insert(pipeworks.pipe_nodenames,"pipeworks:flow_sensor_loaded")
-]]--
+pipeworks.device_nodenames = {}
+
+table.insert(pipeworks.device_nodenames,"pipeworks:valve_on_empty")
+table.insert(pipeworks.device_nodenames,"pipeworks:valve_off_empty")
+table.insert(pipeworks.device_nodenames,"pipeworks:valve_on_loaded")
+table.insert(pipeworks.device_nodenames,"pipeworks:flow_sensor_empty")
+table.insert(pipeworks.device_nodenames,"pipeworks:flow_sensor_loaded")
+
+print(dump(pipeworks.device_nodenames))
+
+minetest.register_abm({
+	nodenames = pipeworks.device_nodenames,
+	interval = 2,
+	chance = 1,
+	action = function(pos, node, active_object_count, active_object_count_wider)
+		local fdir = node.param2
+		local fdir_mod4    = fdir % 4
+		local fdir_mod4_p2 = (fdir+2) % 4
+
+		local fdir_to_pos = {
+			{x = pos.x+1, y = pos.y, z = pos.z  },
+			{x = pos.x,   y = pos.y, z = pos.z-1},
+			{x = pos.x-1, y = pos.y, z = pos.z  },
+			{x = pos.x,   y = pos.y, z = pos.z+1},
+		}
+
+		local pos_adjacent1 = fdir_to_pos[fdir_mod4    + 1]
+		local pos_adjacent2 = fdir_to_pos[fdir_mod4_p2 + 1]
+
+		local adjacent_node1 = minetest.get_node(pos_adjacent1)
+		local adjacent_node2 = minetest.get_node(pos_adjacent2)
+
+		if not adjacent_node1 or not adjacent_node2 then return end
+		print("---------------")
+		print(dump(pos_adjacent1))
+		print(dump(adjacent_node1.name))
+		print(dump(pos_adjacent2))
+		print(dump(adjacent_node2.name))
+
+		local my_level = (minetest.get_meta(pos):get_float("liquid_level")) or 0
+		local adjacent_node_level1 = (minetest.get_meta(pos_adjacent1):get_float("liquid_level")) or 0
+		local adjacent_node_level2 = (minetest.get_meta(pos_adjacent2):get_float("liquid_level")) or 0
+
+			if not string.match(node.name, "pipeworks:valve_off") then
+
+				local num_connections = 1
+				local set1
+				local set2
+				local total_level = my_level
+
+				if string.find(dump(pipeworks.pipe_nodenames), adjacent_node1.name) or
+				  (string.find(dump(pipeworks.device_nodenames), adjacent_node1.name) and
+				  (adjacent_node1.param2 == fdir_mod4 or adjacent_node1.param2 == fdir_mod4_p2)) then
+					num_connections = num_connections + 1
+					total_level = total_level + adjacent_node_level1
+					set1 = true
+				end
+
+				if string.find(dump(pipeworks.pipe_nodenames), adjacent_node2.name) or
+				  (string.find(dump(pipeworks.device_nodenames), adjacent_node2.name) and
+				  (adjacent_node2.param2 == fdir_mod4 or adjacent_node2.param2 == fdir_mod4_p2)) then
+					num_connections = num_connections + 1
+					total_level = total_level + adjacent_node_level2
+					set2 = true
+				end
+
+				local average_level = total_level / num_connections
+
+				minetest.get_meta(pos):set_float("liquid_level", average_level)
+
+				if set1 then
+					minetest.get_meta(pos_adjacent1):set_float("liquid_level", average_level)
+				end
+
+				if set2 then
+					minetest.get_meta(pos_adjacent2):set_float("liquid_level", average_level)
+				end
+
+				if node.name == "pipeworks:flow_sensor_empty" or
+				   node.name == "pipeworks:flow_sensor_loaded" then
+					print("I'm a flow sensor!")
+
+					local sensor = string.match(node.name, "pipeworks:flow_sensor_")
+					local newnode = nil
+					if my_level > 1 then
+						newnode = sensor.."loaded"
+					else
+						newnode = sensor.."empty"
+					end
+					if newnode then
+						minetest.swap_node(pos, {name = newnode, param2 = node.param2})
+					end
+				end
+			else
+				print("I'm a valve and I'm off!")
+			end
+
+			print("my_level="..dump(my_level))
+			print("adjacent_node_level1="..dump(adjacent_node_level1))
+			print("adjacent_node_level2="..dump(adjacent_node_level2))
+
+	end
+})
+
+-- table.insert(pipeworks.device_nodenames,"pipeworks:entry_panel")
