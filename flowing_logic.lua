@@ -230,64 +230,64 @@ minetest.register_abm({
 		local adjacent_node_level1 = (minetest.get_meta(pos_adjacent1):get_float("liquid_level")) or 0
 		local adjacent_node_level2 = (minetest.get_meta(pos_adjacent2):get_float("liquid_level")) or 0
 
-			if not string.match(node.name, "pipeworks:valve_off") then
+		if not string.match(node.name, "pipeworks:valve_off") then
 
-				local num_connections = 1
-				local set1
-				local set2
-				local total_level = my_level
+			local num_connections = 1
+			local set1
+			local set2
+			local total_level = my_level
 
-				if string.find(dump(pipeworks.pipe_nodenames), adjacent_node1.name) or
-				  (string.find(dump(pipeworks.device_nodenames), adjacent_node1.name) and
-				  (adjacent_node1.param2 == fdir_mod4 or adjacent_node1.param2 == fdir_mod4_p2)) then
-					num_connections = num_connections + 1
-					total_level = total_level + adjacent_node_level1
-					set1 = true
+			if string.find(dump(pipeworks.pipe_nodenames), adjacent_node1.name) or
+			  (string.find(dump(pipeworks.device_nodenames), adjacent_node1.name) and
+			  (adjacent_node1.param2 == fdir_mod4 or adjacent_node1.param2 == fdir_mod4_p2)) then
+				num_connections = num_connections + 1
+				total_level = total_level + adjacent_node_level1
+				set1 = true
+			end
+
+			if string.find(dump(pipeworks.pipe_nodenames), adjacent_node2.name) or
+			  (string.find(dump(pipeworks.device_nodenames), adjacent_node2.name) and
+			  (adjacent_node2.param2 == fdir_mod4 or adjacent_node2.param2 == fdir_mod4_p2)) then
+				num_connections = num_connections + 1
+				total_level = total_level + adjacent_node_level2
+				set2 = true
+			end
+
+			local average_level = total_level / num_connections
+
+			minetest.get_meta(pos):set_float("liquid_level", average_level)
+
+			if set1 then
+				minetest.get_meta(pos_adjacent1):set_float("liquid_level", average_level)
+			end
+
+			if set2 then
+				minetest.get_meta(pos_adjacent2):set_float("liquid_level", average_level)
+			end
+
+			if node.name == "pipeworks:flow_sensor_empty" or
+			   node.name == "pipeworks:flow_sensor_loaded" then
+				local sensor = string.match(node.name, "pipeworks:flow_sensor_")
+				local newnode = nil
+
+				if my_level > 1 then
+					newnode = sensor.."loaded"
+				else
+					newnode = sensor.."empty"
 				end
 
-				if string.find(dump(pipeworks.pipe_nodenames), adjacent_node2.name) or
-				  (string.find(dump(pipeworks.device_nodenames), adjacent_node2.name) and
-				  (adjacent_node2.param2 == fdir_mod4 or adjacent_node2.param2 == fdir_mod4_p2)) then
-					num_connections = num_connections + 1
-					total_level = total_level + adjacent_node_level2
-					set2 = true
-				end
-
-				local average_level = total_level / num_connections
-
-				minetest.get_meta(pos):set_float("liquid_level", average_level)
-
-				if set1 then
-					minetest.get_meta(pos_adjacent1):set_float("liquid_level", average_level)
-				end
-
-				if set2 then
-					minetest.get_meta(pos_adjacent2):set_float("liquid_level", average_level)
-				end
-
-				if node.name == "pipeworks:flow_sensor_empty" or
-				   node.name == "pipeworks:flow_sensor_loaded" then
-					local sensor = string.match(node.name, "pipeworks:flow_sensor_")
-					local newnode = nil
-
-					if my_level > 1 then
-						newnode = sensor.."loaded"
-					else
-						newnode = sensor.."empty"
-					end
-
-					if newnode ~= node.name then
-						minetest.swap_node(pos, {name = newnode, param2 = node.param2})
-						if mesecon then
-							if newnode == "pipeworks:flow_sensor_empty" then
-								mesecon.receptor_off(pos, rules) 
-							else
-								mesecon.receptor_on(pos, rules) 
-							end
+				if newnode ~= node.name then
+					minetest.swap_node(pos, {name = newnode, param2 = node.param2})
+					if mesecon then
+						if newnode == "pipeworks:flow_sensor_empty" then
+							mesecon.receptor_off(pos, rules) 
+						else
+							mesecon.receptor_on(pos, rules) 
 						end
 					end
 				end
 			end
+		end
 	end
 })
 
