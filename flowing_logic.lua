@@ -208,8 +208,13 @@ minetest.register_abm({
 	chance = 1,
 	action = function(pos, node, active_object_count, active_object_count_wider)
 		local fdir = node.param2
+		local axisdir = math.floor(fdir/4)
 		local fdir_mod4    = fdir % 4
 		local fdir_mod4_p2 = (fdir+2) % 4
+
+		if axisdir ~= 0 and axisdir ~= 5 then -- if it isn't horizontal, force it.
+			minetest.swap_node(pos, {name = node.name, param2 = fdir_mod4})
+		end
 
 		local fdir_to_pos = {
 			{x = pos.x+1, y = pos.y, z = pos.z  },
