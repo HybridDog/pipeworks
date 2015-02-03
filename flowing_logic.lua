@@ -2,8 +2,7 @@
 -- move through the pipes.
 
 local finite_liquids = minetest.setting_getbool("liquid_finite")
-local pipe_liquid_max = 8
-local pipe_liquid_shows_loaded = 2
+local pipe_liquid_shows_loaded = 0.5
 
 -- Evaluate and balance liquid in all pipes
 
@@ -68,7 +67,7 @@ minetest.register_abm({
 
 minetest.register_abm({
 	nodenames = {"pipeworks:pump_on", "pipeworks:pump_off"},
-	interval = 1,
+	interval = 2,
 	chance = 1,
 	action = function(pos, node, active_object_count, active_object_count_wider)
 		local minp =		{x = pos.x-1, y = pos.y-1, z = pos.z-1}
@@ -86,12 +85,13 @@ minetest.register_abm({
 			if node.name == "pipeworks:pump_on" then
 				local water_nodes = minetest.find_nodes_in_area(minp, maxp, 
 									{"default:water_source", "default:water_flowing"})
-				if (node_level_above < pipe_liquid_max) and #water_nodes > 1 then
+
+				if (node_level_above < 4 ) and #water_nodes > 1 then
 					meta:set_float("liquid_level", node_level_above + 4) -- add water to the pipe
 				end
 			else
 				if node_level_above > 0 then
-					meta:set_float("liquid_level", node_level_above - 1) -- leak the pipe down
+					meta:set_float("liquid_level", node_level_above - 0.5 ) -- leak the pipe down
 				end
 			end
 		end
@@ -102,7 +102,7 @@ minetest.register_abm({
 
 minetest.register_abm({
 	nodenames = {"pipeworks:fountainhead"},
-	interval = 1,
+	interval = 2,
 	chance = 1,
 	action = function(pos, node, active_object_count, active_object_count_wider)
 		local pos_above = {x = pos.x, y = pos.y+1, z = pos.z}
@@ -117,14 +117,14 @@ minetest.register_abm({
 		print(node_level_below)
 		print(dump(node_above.name))
 
-		if node_level_below > 2
+		if node_level_below > 1
 		  and (node_above.name == "air" or node_above.name == "default:water_flowing") then
 			minetest.set_node(pos_above, {name = "default:water_source"})
-		elseif node_level_below < 1 and node_above.name == "default:water_source" then
+		elseif node_level_below < 0.6 and node_above.name == "default:water_source" then
 			minetest.set_node(pos_above, {name = "air"})
 		end
 
-		if node_level_below > 1
+		if node_level_below >= 1
 		  and (node_above.name == "air" or node_above.name == "default:water_source") then
 			minetest.get_meta(pos_below):set_float("liquid_level", node_level_below - 1)
 		end
@@ -135,7 +135,7 @@ minetest.register_abm({
 
 minetest.register_abm({
 	nodenames = {"pipeworks:spigot","pipeworks:spigot_pouring"},
-	interval = 1,
+	interval = 2,
 	chance = 1,
 	action = function(pos, node, active_object_count, active_object_count_wider)
 		local pos_below = {x = pos.x, y = pos.y-1, z = pos.z}
@@ -158,13 +158,13 @@ minetest.register_abm({
 			local adjacent_node_level = (minetest.get_meta(pos_adjacent):get_float("liquid_level")) or 0
 			local pipe_name = string.match(adjacent_node.name, "pipeworks:pipe_%d.*_")
 
-			if pipe_name and adjacent_node_level > 2
+			if pipe_name and adjacent_node_level > 1
 			  and (below_node.name == "air" or below_node.name == "default:water_flowing") then
 				minetest.set_node(pos, {name = "pipeworks:spigot_pouring", param2 = fdir})
 				minetest.set_node(pos_below, {name = "default:water_source"})
 			end
 
-			if (pipe_name and adjacent_node_level < 1)
+			if (pipe_name and adjacent_node_level < 0.6)
 			  or (node.name ~= "pipeworks:spigot" and not pipe_name) then
 				minetest.set_node(pos,{name = "pipeworks:spigot", param2 = fdir})
 				if below_node.name == "default:water_source" then
@@ -172,7 +172,7 @@ minetest.register_abm({
 				end
 			end
 
-			if adjacent_node_level > 1
+			if adjacent_node_level >= 1
 			  and (below_node.name == "air" or below_node.name == "default:water_source") then
 				minetest.get_meta(pos_adjacent):set_float("liquid_level", adjacent_node_level - 1)
 			end
