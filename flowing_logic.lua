@@ -102,7 +102,7 @@ minetest.register_abm({
 				local water_nodes = minetest.find_nodes_in_area(minp, maxp, 
 									{"default:water_source", "default:water_flowing"})
 
-				if (node_level_above < 4 ) and #water_nodes > 1 then
+				if (node_level_above < 2 ) and #water_nodes > 1 then
 					meta:set_float("liquid_level", node_level_above + 4) -- add water to the pipe
 				end
 			else
