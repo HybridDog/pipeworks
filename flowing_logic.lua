@@ -2,7 +2,7 @@
 -- move through the pipes.
 
 local finite_liquids = minetest.setting_getbool("liquid_finite")
-local pipe_liquid_shows_loaded = 0.5
+local pipe_liquid_shows_loaded = 1
 
 if mesecon then
 	pipereceptor_on = {
@@ -24,7 +24,7 @@ end
 
 minetest.register_abm({
 	nodenames = pipeworks.pipe_nodenames, 
-	interval = 2,
+	interval = 1,
 	chance = 1,
 	action = function(pos, node, active_object_count, active_object_count_wider)
 		local coords = {
@@ -131,10 +131,10 @@ minetest.register_abm({
 
 		local node_level_below = (minetest.get_meta(pos_below):get_float("liquid_level")) or 0
 
-		if node_level_below > 1
+		if node_level_below > 0.9
 		  and (node_above.name == "air" or node_above.name == "default:water_flowing") then
 			minetest.set_node(pos_above, {name = "default:water_source"})
-		elseif node_level_below < 0.6 and node_above.name == "default:water_source" then
+		elseif node_level_below < 0.75 and node_above.name == "default:water_source" then
 			minetest.set_node(pos_above, {name = "air"})
 		end
 
@@ -172,13 +172,13 @@ minetest.register_abm({
 			local adjacent_node_level = (minetest.get_meta(pos_adjacent):get_float("liquid_level")) or 0
 			local pipe_name = string.match(adjacent_node.name, "pipeworks:pipe_%d.*_")
 
-			if pipe_name and adjacent_node_level > 1
+			if pipe_name and adjacent_node_level > 0.9
 			  and (below_node.name == "air" or below_node.name == "default:water_flowing") then
 				minetest.set_node(pos, {name = "pipeworks:spigot_pouring", param2 = fdir})
 				minetest.set_node(pos_below, {name = "default:water_source"})
 			end
 
-			if (pipe_name and adjacent_node_level < 0.6)
+			if (pipe_name and adjacent_node_level < 0.75)
 			  or (node.name ~= "pipeworks:spigot" and not pipe_name) then
 				minetest.set_node(pos,{name = "pipeworks:spigot", param2 = fdir})
 				if below_node.name == "default:water_source" then
