@@ -296,4 +296,85 @@ minetest.register_abm({
 	end
 })
 
--- table.insert(pipeworks.device_nodenames,"pipeworks:entry_panel")
+minetest.register_abm({
+	nodenames = { "pipeworks:entry_panel" },
+	interval = 2,
+	chance = 1,
+	action = function(pos, node, active_object_count, active_object_count_wider)
+		local fdir = node.param2
+		local axisdir = math.floor(fdir/4)
+		local fdir_mod4    = (fdir+1) % 4
+		local fdir_mod4_p2 = (fdir+3) % 4
+
+		-- reset the panel's facedir to predictable values, if needed
+
+		if axisdir == 5 then
+			minetest.swap_node(pos, {name = node.name, param2 = fdir_mod4 })
+			return
+		elseif axisdir ~= 0 and axisdir ~= 3 then 
+			minetest.swap_node(pos, {name = node.name, param2 = 13 })
+			return
+		end
+
+		local pos_adjacent1
+		local pos_adjacent2
+
+		if axisdir == 0 then 
+			local fdir_to_pos = {
+				{x = pos.x+1, y = pos.y, z = pos.z  },
+				{x = pos.x,   y = pos.y, z = pos.z-1},
+				{x = pos.x-1, y = pos.y, z = pos.z  },
+				{x = pos.x,   y = pos.y, z = pos.z+1},
+			}
+
+			pos_adjacent1 = fdir_to_pos[fdir_mod4    + 1]
+			pos_adjacent2 = fdir_to_pos[fdir_mod4_p2 + 1]
+		else
+			pos_adjacent1 = { x=pos.x, y=pos.y+1, z=pos.z }
+			pos_adjacent2 = { x=pos.x, y=pos.y-1, z=pos.z }
+		end
+
+		local adjacent_node1 = minetest.get_node(pos_adjacent1)
+		local adjacent_node2 = minetest.get_node(pos_adjacent2)
+
+		if not adjacent_node1 or not adjacent_node2 then return end
+
+		local my_level = (minetest.get_meta(pos):get_float("liquid_level")) or 0
+		local adjacent_node_level1 = (minetest.get_meta(pos_adjacent1):get_float("liquid_level")) or 0
+		local adjacent_node_level2 = (minetest.get_meta(pos_adjacent2):get_float("liquid_level")) or 0
+
+		local num_connections = 1
+		local set1
+		local set2
+		local total_level = my_level
+
+		if string.find(dump(pipeworks.pipe_nodenames), adjacent_node1.name) or
+		  (axisdir == 3 and string.find(dump(pipeworks.device_nodenames), adjacent_node1.name) and
+		  (adjacent_node1.param2 == fdir_mod4 or adjacent_node1.param2 == fdir_mod4_p2)) then
+			num_connections = num_connections + 1
+			total_level = total_level + adjacent_node_level1
+			set1 = true
+		end
+
+		if string.find(dump(pipeworks.pipe_nodenames), adjacent_node2.name) or
+		  (axisdir == 3 and string.find(dump(pipeworks.device_nodenames), adjacent_node2.name) and
+		  (adjacent_node2.param2 == fdir_mod4 or adjacent_node2.param2 == fdir_mod4_p2)) then
+			num_connections = num_connections + 1
+			total_level = total_level + adjacent_node_level2
+			set2 = true
+		end
+
+		local average_level = total_level / num_connections
+
+		minetest.get_meta(pos):set_float("liquid_level", average_level)
+
+		if set1 then
+			minetest.get_meta(pos_adjacent1):set_float("liquid_level", average_level)
+		end
+
+		if set2 then
+			minetest.get_meta(pos_adjacent2):set_float("liquid_level", average_level)
+		end
+	end
+})
+
