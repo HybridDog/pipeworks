@@ -20,6 +20,53 @@ if mesecon then
 	}
 end
 
+-- check if a valve, sensor, or other X-oriented device
+-- has something connected at each end.
+
+function pipeworks.is_device_connected(pos, node, axisdir, fdir_mod4, rotation)
+	local fdir = node.param2
+	local fdir_mod4_p2 = (fdir+2) % 4
+
+	if rotation == "z" then
+		fdir_mod4    = (fdir+1) % 4
+		fdir_mod4_p2 = (fdir+3) % 4
+	end
+
+	local fdir_to_pos = {
+		{x = pos.x+1, y = pos.y, z = pos.z  },
+		{x = pos.x,   y = pos.y, z = pos.z-1},
+		{x = pos.x-1, y = pos.y, z = pos.z  },
+		{x = pos.x,   y = pos.y, z = pos.z+1},
+	}
+
+	local pos_adjacent1 = fdir_to_pos[fdir_mod4    + 1]
+	local pos_adjacent2 = fdir_to_pos[fdir_mod4_p2 + 1]
+
+	if rotation == "y" then
+		pos_adjacent1 = { x=pos.x, y=pos.y+1, z=pos.z }
+		pos_adjacent2 = { x=pos.x, y=pos.y-1, z=pos.z }
+	end
+
+	local adjacent_node1 = minetest.get_node(pos_adjacent1)
+	local adjacent_node2 = minetest.get_node(pos_adjacent2)
+
+	local set1
+	local set2
+
+	if string.find(dump(pipeworks.pipe_nodenames), adjacent_node1.name) or
+	  (string.find(dump(pipeworks.device_nodenames), adjacent_node1.name) and
+	  (adjacent_node1.param2 == fdir_mod4 or adjacent_node1.param2 == fdir_mod4_p2)) then
+		set1 = true
+	end
+
+	if string.find(dump(pipeworks.pipe_nodenames), adjacent_node2.name) or
+	  (string.find(dump(pipeworks.device_nodenames), adjacent_node2.name) and
+	  (adjacent_node2.param2 == fdir_mod4 or adjacent_node2.param2 == fdir_mod4_p2)) then
+		set2 = true
+	end
+	return {set1=set1, set2=set2, pos_adjacent1=pos_adjacent1, pos_adjacent2=pos_adjacent2}
+end
+
 -- Evaluate and balance liquid in all pipes
 
 minetest.register_abm({
@@ -171,6 +218,10 @@ minetest.register_abm({
 			if not adjacent_node then return end
 			local adjacent_node_level = (minetest.get_meta(pos_adjacent):get_float("liquid_level")) or 0
 			local pipe_name = string.match(adjacent_node.name, "pipeworks:pipe_%d.*_")
+			local device_name = string.match(adjacent_node.name, "pipeworks:valve_on.*")
+								or string.match(adjacent_node.name, "pipeworks:flow_sensor.*")
+								or string.match(adjacent_node.name, "pipeworks:entry_panel")
+			
 
 			if pipe_name and adjacent_node_level > 0.9
 			  and (below_node.name == "air" or below_node.name == "default:water_flowing") then
@@ -201,74 +252,71 @@ table.insert(pipeworks.device_nodenames,"pipeworks:valve_off_empty")
 table.insert(pipeworks.device_nodenames,"pipeworks:valve_on_loaded")
 table.insert(pipeworks.device_nodenames,"pipeworks:flow_sensor_empty")
 table.insert(pipeworks.device_nodenames,"pipeworks:flow_sensor_loaded")
+table.insert(pipeworks.device_nodenames,"pipeworks:entry_panel")
 
 minetest.register_abm({
 	nodenames = pipeworks.device_nodenames,
 	interval = 2,
 	chance = 1,
 	action = function(pos, node, active_object_count, active_object_count_wider)
-		local fdir = node.param2
-		local axisdir = math.floor(fdir/4)
-		local fdir_mod4    = fdir % 4
-		local fdir_mod4_p2 = (fdir+2) % 4
 
-		if axisdir ~= 0 and axisdir ~= 5 then -- if it isn't horizontal, force it.
-			minetest.swap_node(pos, {name = node.name, param2 = fdir_mod4})
-			return
-		end
-
-		local fdir_to_pos = {
-			{x = pos.x+1, y = pos.y, z = pos.z  },
-			{x = pos.x,   y = pos.y, z = pos.z-1},
-			{x = pos.x-1, y = pos.y, z = pos.z  },
-			{x = pos.x,   y = pos.y, z = pos.z+1},
-		}
-
-		local pos_adjacent1 = fdir_to_pos[fdir_mod4    + 1]
-		local pos_adjacent2 = fdir_to_pos[fdir_mod4_p2 + 1]
-
-		local adjacent_node1 = minetest.get_node(pos_adjacent1)
-		local adjacent_node2 = minetest.get_node(pos_adjacent2)
-
-		if not adjacent_node1 or not adjacent_node2 then return end
-
-		local my_level = (minetest.get_meta(pos):get_float("liquid_level")) or 0
-		local adjacent_node_level1 = (minetest.get_meta(pos_adjacent1):get_float("liquid_level")) or 0
-		local adjacent_node_level2 = (minetest.get_meta(pos_adjacent2):get_float("liquid_level")) or 0
+		local fdir			= node.param2
+		local axisdir		= math.floor(fdir/4)
+		local fdir_mod4		= fdir % 4
+		local rotation
 
 		if not string.match(node.name, "pipeworks:valve_off") then
 
-			local num_connections = 1
-			local set1
-			local set2
-			local total_level = my_level
+			if node.name == "pipeworks:entry_panel" then
+				rotation = "z"
+				fdir_mod4 = (fdir+1) % 4
 
-			if string.find(dump(pipeworks.pipe_nodenames), adjacent_node1.name) or
-			  (string.find(dump(pipeworks.device_nodenames), adjacent_node1.name) and
-			  (adjacent_node1.param2 == fdir_mod4 or adjacent_node1.param2 == fdir_mod4_p2)) then
-				num_connections = num_connections + 1
-				total_level = total_level + adjacent_node_level1
-				set1 = true
+				-- reset the panel's facedir to predictable values, if needed
+
+				if axisdir == 5 then
+					minetest.swap_node(pos, {name = node.name, param2 = fdir_mod4 })
+					return
+				elseif axisdir ~= 0 and axisdir ~= 3 then 
+					minetest.swap_node(pos, {name = node.name, param2 = 13 })
+					return
+				end
+
+				if node.param2 == 13 then
+					rotation = "y"
+				end
+			elseif axisdir ~= 0 and axisdir ~= 5 then -- if the device isn't horizontal, force it.
+				minetest.swap_node(pos, {name = node.name, param2 = fdir_mod4})
+				return
 			end
 
-			if string.find(dump(pipeworks.pipe_nodenames), adjacent_node2.name) or
-			  (string.find(dump(pipeworks.device_nodenames), adjacent_node2.name) and
-			  (adjacent_node2.param2 == fdir_mod4 or adjacent_node2.param2 == fdir_mod4_p2)) then
+			local connections = pipeworks.is_device_connected(pos, node, axisdir, fdir_mod4, rotation)
+
+			local num_connections = 1
+			local my_level = (minetest.get_meta(pos):get_float("liquid_level")) or 0
+			local total_level = my_level
+
+			if not connections.set1 and not connections.set2 then return end
+
+			if connections.set1 then 
 				num_connections = num_connections + 1
-				total_level = total_level + adjacent_node_level2
-				set2 = true
+				total_level = total_level + (minetest.get_meta(connections.pos_adjacent1):get_float("liquid_level")) or 0
+			end
+
+			if connections.set2 then
+				num_connections = num_connections + 1
+				total_level = total_level + (minetest.get_meta(connections.pos_adjacent2):get_float("liquid_level")) or 0
 			end
 
 			local average_level = total_level / num_connections
 
 			minetest.get_meta(pos):set_float("liquid_level", average_level)
 
-			if set1 then
-				minetest.get_meta(pos_adjacent1):set_float("liquid_level", average_level)
+			if connections.set1 then
+				minetest.get_meta(connections.pos_adjacent1):set_float("liquid_level", average_level)
 			end
 
-			if set2 then
-				minetest.get_meta(pos_adjacent2):set_float("liquid_level", average_level)
+			if connections.set2 then
+				minetest.get_meta(connections.pos_adjacent2):set_float("liquid_level", average_level)
 			end
 
 			if node.name == "pipeworks:flow_sensor_empty" or
@@ -276,7 +324,7 @@ minetest.register_abm({
 				local sensor = string.match(node.name, "pipeworks:flow_sensor_")
 				local newnode = nil
 
-				if my_level > 1 and (set1 or set2) then
+				if my_level > 1 and (connections.set1 or connections.set2) then
 					newnode = sensor.."loaded"
 				else
 					newnode = sensor.."empty"
@@ -293,88 +341,6 @@ minetest.register_abm({
 					end
 				end
 			end
-		end
-	end
-})
-
-minetest.register_abm({
-	nodenames = { "pipeworks:entry_panel" },
-	interval = 2,
-	chance = 1,
-	action = function(pos, node, active_object_count, active_object_count_wider)
-		local fdir = node.param2
-		local axisdir = math.floor(fdir/4)
-		local fdir_mod4    = (fdir+1) % 4
-		local fdir_mod4_p2 = (fdir+3) % 4
-
-		-- reset the panel's facedir to predictable values, if needed
-
-		if axisdir == 5 then
-			minetest.swap_node(pos, {name = node.name, param2 = fdir_mod4 })
-			return
-		elseif axisdir ~= 0 and axisdir ~= 3 then 
-			minetest.swap_node(pos, {name = node.name, param2 = 13 })
-			return
-		end
-
-		local pos_adjacent1
-		local pos_adjacent2
-
-		if axisdir == 0 then 
-			local fdir_to_pos = {
-				{x = pos.x+1, y = pos.y, z = pos.z  },
-				{x = pos.x,   y = pos.y, z = pos.z-1},
-				{x = pos.x-1, y = pos.y, z = pos.z  },
-				{x = pos.x,   y = pos.y, z = pos.z+1},
-			}
-
-			pos_adjacent1 = fdir_to_pos[fdir_mod4    + 1]
-			pos_adjacent2 = fdir_to_pos[fdir_mod4_p2 + 1]
-		else
-			pos_adjacent1 = { x=pos.x, y=pos.y+1, z=pos.z }
-			pos_adjacent2 = { x=pos.x, y=pos.y-1, z=pos.z }
-		end
-
-		local adjacent_node1 = minetest.get_node(pos_adjacent1)
-		local adjacent_node2 = minetest.get_node(pos_adjacent2)
-
-		if not adjacent_node1 or not adjacent_node2 then return end
-
-		local my_level = (minetest.get_meta(pos):get_float("liquid_level")) or 0
-		local adjacent_node_level1 = (minetest.get_meta(pos_adjacent1):get_float("liquid_level")) or 0
-		local adjacent_node_level2 = (minetest.get_meta(pos_adjacent2):get_float("liquid_level")) or 0
-
-		local num_connections = 1
-		local set1
-		local set2
-		local total_level = my_level
-
-		if string.find(dump(pipeworks.pipe_nodenames), adjacent_node1.name) or
-		  (axisdir == 3 and string.find(dump(pipeworks.device_nodenames), adjacent_node1.name) and
-		  (adjacent_node1.param2 == fdir_mod4 or adjacent_node1.param2 == fdir_mod4_p2)) then
-			num_connections = num_connections + 1
-			total_level = total_level + adjacent_node_level1
-			set1 = true
-		end
-
-		if string.find(dump(pipeworks.pipe_nodenames), adjacent_node2.name) or
-		  (axisdir == 3 and string.find(dump(pipeworks.device_nodenames), adjacent_node2.name) and
-		  (adjacent_node2.param2 == fdir_mod4 or adjacent_node2.param2 == fdir_mod4_p2)) then
-			num_connections = num_connections + 1
-			total_level = total_level + adjacent_node_level2
-			set2 = true
-		end
-
-		local average_level = total_level / num_connections
-
-		minetest.get_meta(pos):set_float("liquid_level", average_level)
-
-		if set1 then
-			minetest.get_meta(pos_adjacent1):set_float("liquid_level", average_level)
-		end
-
-		if set2 then
-			minetest.get_meta(pos_adjacent2):set_float("liquid_level", average_level)
 		end
 	end
 })
