@@ -170,6 +170,11 @@ minetest.register_abm({
 	chance = 1,
 	action = function(pos, node, active_object_count, active_object_count_wider)
 
+		local fdir = node.param2 % 4
+		if fdir ~= node.param2 then
+			minetest.set_node(pos,{name = node.name, param2 = fdir})
+		end
+
 		local pos_below = {x = pos.x, y = pos.y-1, z = pos.z}
 		local below_node = minetest.get_node(pos_below)
 		if not below_node then return end
@@ -195,7 +200,7 @@ minetest.register_abm({
 		else
 			if below_node.name == "air" or below_node.name == "default:water_flowing"
 			  or below_node.name == "default:water_source" then 
-				local fdir = node.param2
+
 				local fdir_to_pos = {
 					{x = pos.x,   y = pos.y, z = pos.z+1},
 					{x = pos.x+1, y = pos.y, z = pos.z  },
