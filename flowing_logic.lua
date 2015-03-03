@@ -144,6 +144,7 @@ minetest.register_abm({
 		local node_level_above = meta:get_float("liquid_level")
 		if node_level_above == nil then node_level_above = 0 end
 		local pipe_name = string.match(node_above.name, "pipeworks:pipe_%d.*_")
+						  or (node_above.name == "pipeworks:entry_panel" and node_above.param2 == 13)
 
 		if pipe_name then
 			if node.name == "pipeworks:pump_on" then
