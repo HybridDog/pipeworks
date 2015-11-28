@@ -21,6 +21,123 @@ if mesecon then
 	}
 end
 
+local get = vector.get_data_from_pos
+local set = vector.set_data_to_pos
+local remove = vector.remove_data_from_pos
+
+-- returns touching pipes nodes
+local function get_connected_pipe_stuff(z,y,x)
+	local pipes,n = {},1
+	for i = -1,1,2 do
+		for _,p in pairs({
+			{z+i, y, x},
+			{z, y+i, x},
+			{z, y, x+i},
+		}) do
+			local z,y,x = unpack(p)
+			local node = get_node(z,y,x)
+			if pipe_stuff(node.name) then
+				pipes[n] = {{z,y,x}, node}
+				n = n+1
+			end
+		end
+	end
+	return pipes
+end
+
+--[[nodename pressure y↓
+air 0
+air 0
+liq 1
+liq 2
+cas 3
+pip 4
+]]
+
+-- cast is not pupm, it's natural pressure
+local function get_cast_pressure(pos, name)
+	if get_node({x=pos.x, y=pos.y+1, z=pos.z}).name ~= name then
+		-- liquid doesn't flow to side, just down
+		return 0
+	end
+	for i = 2,50 do
+		if get_node({x=pos.x, y=pos.y+i, z=pos.z}).name ~= name then
+			return i
+		end
+	end
+	return 0
+end
+
+-- tests if there's a pipe where the liquid can flow in
+local function can_flow(z,y,x, pressure, name)
+	local pipe = get_pipe(z,y,x)
+	return pipe
+	and pipe.pressure < pressure
+	and (not pipe.liquid or pipe.liquid == name)
+end
+
+-- calculates positions of pipes and devices connected to each other
+local function liquid_flows(z,y,x, pressure, name)
+	local pressure_y = y+pressure
+	local todo = {{z,y,x}}
+	local devices,d = {},1
+	local tab_avoid = {}
+	set(tab_avoid, z,y,x, true)
+	local pipes,num = {{z,y,x}},2
+	while next(todo) do
+		for n,p in pairs(todo) do
+			local z,y,x = unpack(p)
+			for _,pips in pairs(get_connected_pipe_stuff(z,y,x)) do
+				local z,y,x = unpack(pips[1])
+				if y < pressure_y
+				and not get(tab_avoid, z,y,x) then
+					set(tab_avoid, z,y,x, true)
+					local pressure = pressure_y - y
+					if can_flow(z,y,x, pressure, name) then
+						pipes[num] = {z,y,x}
+						num = num+1
+						table.insert(todo, {z,y,x})
+					elseif device(z,y,x) then
+						devices[d] = {z,y,x}
+						d = d+1
+					end
+				end
+			end
+			todo[n] = nil
+		end
+	end
+	return pipes, tab_avoid, devices
+end
+
+-- adds liquids to a pipe and/or changes its pressure
+local function change_pipe(z,y,x, pressure, name)
+	local pipe = get_pipe(z,y,x)
+	if pipe.liquid ~= name then
+		local node = get_node(z,y,x)
+		node.name = pipe_liquid_name(node.name)
+		set_node(z,y,x, node)
+	end
+	if pipe.pressure ~= pressure then
+		meta_set_pressure(z,y,x, pressure)
+	end
+end
+
+-- updates pipes and devices
+local function flow_liquid(z,py,x, pressure, name)
+	local pipes, pipes_ps, devices = liquid_flows(z,py,x, pressure, name)
+	for _,p in pairs(pipes) do
+		local z,y,x = unpack(p)
+		local pressure = py-y
+		change_pipe(z,y,x, pressure, name)
+	end
+	for _,p in pairs(devices) do
+		local z,y,x = unpack(p)
+		local pressure = py-y
+		update_device(z,y,x, pressure, name)
+	end
+end
+
+
 local function is_pipe(name)
 	return string.find(dump(pipeworks.pipe_nodenames), name)
 end

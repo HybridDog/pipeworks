@@ -67,10 +67,10 @@ for s in ipairs(states) do
 		drop = "pipeworks:pump_off",
 		mesecons = {effector = {
 			action_on = function (pos, node)
-				minetest.add_node(pos,{name="pipeworks:pump_on", param2 = node.param2}) 
+				minetest.add_node(pos,{name="pipeworks:pump_on", param2 = node.param2})
 			end,
 			action_off = function (pos, node)
-				minetest.add_node(pos,{name="pipeworks:pump_off", param2 = node.param2}) 
+				minetest.add_node(pos,{name="pipeworks:pump_off", param2 = node.param2})
 			end
 		}},
 		on_punch = function(pos, node, puncher)
@@ -78,7 +78,7 @@ for s in ipairs(states) do
 			minetest.add_node(pos, { name = "pipeworks:pump_"..states[3-s], param2 = fdir })
 		end
 	})
-	
+
 	minetest.register_node("pipeworks:valve_"..states[s].."_empty", {
 		description = "Valve",
 		drawtype = "mesh",
@@ -107,10 +107,10 @@ for s in ipairs(states) do
 	drop = "pipeworks:valve_off_empty",
 		mesecons = {effector = {
 			action_on = function (pos, node)
-				minetest.swap_node(pos,{name="pipeworks:valve_on_empty", param2 = node.param2}) 
+				minetest.swap_node(pos,{name="pipeworks:valve_on_empty", param2 = node.param2})
 			end,
 			action_off = function (pos, node)
-				minetest.swap_node(pos,{name="pipeworks:valve_off_empty", param2 = node.param2}) 
+				minetest.swap_node(pos,{name="pipeworks:valve_off_empty", param2 = node.param2})
 			end
 		}},
 		on_punch = function(pos, node, puncher)
@@ -148,10 +148,10 @@ minetest.register_node("pipeworks:valve_on_loaded", {
 	drop = "pipeworks:valve_off_empty",
 	mesecons = {effector = {
 		action_on = function (pos, node)
-			minetest.swap_node(pos,{name="pipeworks:valve_on_empty", param2 = node.param2}) 
+			minetest.swap_node(pos,{name="pipeworks:valve_on_empty", param2 = node.param2})
 		end,
 		action_off = function (pos, node)
-			minetest.swap_node(pos,{name="pipeworks:valve_off_empty", param2 = node.param2}) 
+			minetest.swap_node(pos,{name="pipeworks:valve_off_empty", param2 = node.param2})
 		end
 	}},
 	on_punch = function(pos, node, puncher)
@@ -230,6 +230,7 @@ minetest.register_node("pipeworks:spigot_pouring", {
 		},
 		{ name = "pipeworks_spigot.png" }
 	},
+	use_texture_alpha = true,
 	sunlight_propagates = true,
 	paramtype = "light",
 	paramtype2 = "facedir",
@@ -244,7 +245,7 @@ minetest.register_node("pipeworks:spigot_pouring", {
 		local pos_below = {x = pos.x, y = pos.y-1, z = pos.z}
 		local below_node = minetest.get_node(pos_below)
 		if below_node.name == "default:water_source" then
-			minetest.set_node(pos_below, { name = "air" })
+			minetest.remove_node(pos_below)
 		end
 	end,
 	selection_box = {
@@ -289,7 +290,7 @@ minetest.register_node("pipeworks:entry_panel", {
 	collision_box = panel_cbox,
 	on_place = function(itemstack, placer, pointed_thing)
 		local playername = placer:get_player_name()
-		if not minetest.is_protected(pointed_thing.under, playername) 
+		if not minetest.is_protected(pointed_thing.under, playername)
 		   and not minetest.is_protected(pointed_thing.above, playername) then
 			local node = minetest.get_node(pointed_thing.under)
 
@@ -365,7 +366,7 @@ minetest.register_node("pipeworks:flow_sensor_empty", {
 	end,
 	on_construct = function(pos)
 		if mesecon then
-			mesecon.receptor_off(pos, rules) 
+			mesecon.receptor_off(pos, rules)
 		end
 	end,
 	selection_box = {
@@ -404,7 +405,7 @@ minetest.register_node("pipeworks:flow_sensor_loaded", {
 	end,
 	on_construct = function(pos)
 		if mesecon then
-			mesecon.receptor_on(pos, rules) 
+			mesecon.receptor_on(pos, rules)
 		end
 	end,
 	selection_box = {
@@ -516,7 +517,7 @@ minetest.register_node("pipeworks:fountainhead", {
 	end,
 	on_construct = function(pos)
 		if mesecon then
-			mesecon.receptor_on(pos, rules) 
+			mesecon.receptor_on(pos, rules)
 		end
 	end,
 	selection_box = {
