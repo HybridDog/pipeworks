@@ -25,6 +25,29 @@ local get = vector.get_data_from_pos
 local set = vector.set_data_to_pos
 local remove = vector.remove_data_from_pos
 
+-- cache results of minetest.get_node
+local known_nodes = {}
+local function set_node(z,y,x, node)
+	set(known_nodes, z,y,x, node)
+	minetest.set_node({x=x, y=y, z=z}, node)
+end
+
+local function remove_node(z,y,x)
+	set(known_nodes, z,y,x, {name="air", param2=0})
+	minetest.remove_node({x=x, y=y, z=z})
+end
+
+local function get_node(z,y,x)
+	local node = get(known_nodes, z,y,x)
+	if node then
+		return node
+	end
+	node = minetest.get_node({x=x, y=y, z=z})
+	set(known_nodes, z,y,x, node)
+	return node
+end
+
+
 -- returns touching pipes nodes
 local function get_connected_pipe_stuff(z,y,x)
 	local pipes,n = {},1
@@ -66,6 +89,17 @@ local function get_cast_pressure(pos, name)
 		end
 	end
 	return 0
+end
+
+-- should return infos about a pipe there
+local function get_pipe(z,y,x)
+	local pipe = get_node(z,y,x)
+	if not is_pipe(pipe.name) then
+		return pipe
+	end
+	pipe.liquid = liquid_from_pipename(pipe.name)
+	pipe.pressure = meta_get_pressure(z,y,x)
+	return pipe
 end
 
 -- tests if there's a pipe where the liquid can flow in
@@ -135,6 +169,7 @@ local function flow_liquid(z,py,x, pressure, name)
 		local pressure = py-y
 		update_device(z,y,x, pressure, name)
 	end
+	known_nodes = {}
 end
 
 
