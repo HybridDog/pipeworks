@@ -145,5 +145,4 @@ if pipeworks.enable_lua_tube then dofile(pipeworks.modpath.."/lua_tube.lua") end
 
 minetest.register_alias("pipeworks:pipe", "pipeworks:pipe_110000_empty")
 
-print("Pipeworks loaded!")
-
+minetest.log("info", "Pipeworks loaded!")
