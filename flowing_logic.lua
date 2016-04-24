@@ -130,7 +130,7 @@ local function liquid_flows(z,y,x, pressure, name)
 					if can_flow(z,y,x, pressure, name) then
 						pipes[num] = {z,y,x}
 						num = num+1
-						table.insert(todo, {z,y,x})
+						todo[#todo+1] = {z,y,x}
 					elseif device(z,y,x) then
 						devices[d] = {z,y,x}
 						d = d+1
