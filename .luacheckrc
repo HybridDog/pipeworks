@@ -11,6 +11,7 @@ read_globals = {
 	-- Stdlib
 	string = {fields = {"split"}},
 	table = {fields = {"copy", "getn"}},
+	"math",
 
 	-- Minetest
 	"vector", "ItemStack",

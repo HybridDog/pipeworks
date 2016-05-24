@@ -83,30 +83,32 @@ end
 
 pipeworks.spigot_check = function(pos, node)
 	local belowname = minetest.get_node({x=pos.x,y=pos.y-1,z=pos.z}).name
-	if belowname and (belowname == "air" or belowname == "default:water_flowing" or belowname == "default:water_source") then
-		local spigotname = minetest.get_node(pos).name
-		local fdir=node.param2 % 4
-		local check = {
-			{x=pos.x,y=pos.y,z=pos.z+1},
-			{x=pos.x+1,y=pos.y,z=pos.z},
-			{x=pos.x,y=pos.y,z=pos.z-1},
-			{x=pos.x-1,y=pos.y,z=pos.z}
-		}
-		local near_node = minetest.get_node(check[fdir+1])
-		if near_node and string.find(near_node.name, "_loaded") then
-			if spigotname and spigotname == "pipeworks:spigot" then
-				minetest.add_node(pos,{name = "pipeworks:spigot_pouring", param2 = fdir})
-				if finitewater or belowname ~= "default:water_source" then
-					minetest.add_node({x=pos.x,y=pos.y-1,z=pos.z},{name = "default:water_source"})
-				end
+	if belowname ~= "air"
+	and belowname ~= "default:water_flowing"
+	and belowname ~= "default:water_source" then
+		return
+	end
+
+	local addend = math.sign(1.5 - node.param2)
+	local coord = node.param2 % 2 == 0 and "z" or "x"
+	pos[coord] = pos[coord] + addend
+	local nearname = minetest.get_node(pos).name
+	pos[coord] = pos[coord] - addend
+	if string.find(nearname, "_loaded") then
+		if node.name == "pipeworks:spigot" then
+			node.name = "pipeworks:spigot_pouring"
+			minetest.add_node(pos, node)
+			if finitewater
+			or belowname ~= "default:water_source" then
+				minetest.add_node({x=pos.x,y=pos.y-1,z=pos.z}, {name = "default:water_source"})
 			end
-		else
-			if spigotname == "pipeworks:spigot_pouring" then
-				minetest.add_node({x=pos.x,y=pos.y,z=pos.z},{name = "pipeworks:spigot", param2 = fdir})
-				if belowname == "default:water_source" and not finitewater then
-					minetest.remove_node({x=pos.x,y=pos.y-1,z=pos.z})
-				end
-			end
+		end
+	elseif node.name == "pipeworks:spigot_pouring" then
+		node.name = "pipeworks:spigot"
+		minetest.add_node(pos, node)
+		if belowname == "default:water_source"
+		and not finitewater then
+			minetest.remove_node({x=pos.x,y=pos.y-1,z=pos.z})
 		end
 	end
 end
