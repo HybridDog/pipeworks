@@ -92,7 +92,7 @@ minetest.register_craft( {
 -- If homedecor is not installed, we need to register its crafting chain for
 -- plastic sheeting so that pipeworks remains compatible with it.
 
-if not minetest.registered_nodes["homedecor:oil_extract"] then
+if not minetest.registered_items["homedecor:plastic_base"] then
 
 	minetest.register_craftitem(":homedecor:oil_extract", {
 		    description = "Oil extract",
