@@ -84,11 +84,10 @@ function table.contains(tbl, element)
 	return false
 end
 
-function table.extend(tbl, tbl2)
-	local index = #tbl + 1
-	for _, elt in ipairs(tbl2) do
-		tbl[index] = elt
-		index = index + 1
+function table.extend(t1, t2)
+	local lt1 = #t1
+	for i = 1,#t2 do
+		t1[lt1 + i] = t2[i]
 	end
 end
 
